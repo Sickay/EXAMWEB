@@ -1,0 +1,176 @@
+1. Додати CSS для анімації (додати в кінець файлу styles.css):
+css/* Анімація для кнопки 2 калькулятора */
+@keyframes specialButtonAnimation {
+    0% {
+        transform: scale(1) rotate(0deg);
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+    }
+    25% {
+        transform: scale(1.2) rotate(90deg);
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    }
+    50% {
+        transform: scale(1.4) rotate(180deg);
+        background: linear-gradient(135deg, #f093fb, #f5576c);
+        box-shadow: 0 12px 35px rgba(240, 147, 251, 0.6);
+    }
+    75% {
+        transform: scale(1.2) rotate(270deg);
+        background: linear-gradient(135deg, #4facfe, #00f2fe);
+        box-shadow: 0 8px 25px rgba(79, 172, 254, 0.4);
+    }
+    100% {
+        transform: scale(1) rotate(360deg);
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+    }
+}
+
+.calculator-button-2-animated {
+    animation: specialButtonAnimation 2s ease-in-out;
+}
+
+/* Анімація для всього калькулятора при натисканні кнопки 2 */
+@keyframes calculatorShake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+.calculator-shake {
+    animation: calculatorShake 0.8s ease-in-out;
+}
+2. Змінити функцію Calculator (замінити існуючий блок функції Calculator):
+У функції Calculator, потрібно додати стан для анімації і змінити обробник кнопки "2":
+javascriptfunction Calculator() {
+    const [display, setDisplay] = useState('0');
+    const [previousValue, setPreviousValue] = useState(null);
+    const [operation, setOperation] = useState(null);
+    const [waitingForOperand, setWaitingForOperand] = useState(false);
+    // Додати ці нові стани
+    const [isButton2Animating, setIsButton2Animating] = useState(false);
+    const [isCalculatorShaking, setIsCalculatorShaking] = useState(false);
+
+    const inputNumber = (num) => {
+        if (waitingForOperand) {
+            setDisplay(String(num));
+            setWaitingForOperand(false);
+        } else {
+            setDisplay(display === '0' ? String(num) : display + num);
+        }
+    };
+
+    // Додати нову функцію для обробки кнопки 2
+    const handleButton2Click = () => {
+        // Запускаємо анімацію кнопки
+        setIsButton2Animating(true);
+        // Запускаємо анімацію всього калькулятора
+        setIsCalculatorShaking(true);
+        
+        // Через 2 секунди повертаємо все до нормального стану
+        setTimeout(() => {
+            setIsButton2Animating(false);
+            setIsCalculatorShaking(false);
+            // Тільки після анімації додаємо цифру 2
+            inputNumber(2);
+        }, 2000);
+    };
+
+    // Решта функцій залишаються без змін...
+    const inputDecimal = () => {
+        if (waitingForOperand) {
+            setDisplay('0.');
+            setWaitingForOperand(false);
+        } else if (display.indexOf('.') === -1) {
+            setDisplay(display + '.');
+        }
+    };
+
+    const clear = () => {
+        setDisplay('0');
+        setPreviousValue(null);
+        setOperation(null);
+        setWaitingForOperand(false);
+    };
+
+    const performOperation = (nextOperation) => {
+        const inputValue = parseFloat(display);
+
+        if (previousValue === null) {
+            setPreviousValue(inputValue);
+        } else if (operation) {
+            const currentValue = previousValue || 0;
+            const newValue = calculate(currentValue, inputValue, operation);
+
+            setDisplay(String(newValue));
+            setPreviousValue(newValue);
+        }
+
+        setWaitingForOperand(true);
+        setOperation(nextOperation);
+    };
+
+    const calculate = (firstValue, secondValue, operation) => {
+        switch (operation) {
+            case '+':
+                return firstValue + secondValue;
+            case '-':
+                return firstValue - secondValue;
+            case '×':
+                return firstValue * secondValue;
+            case '÷':
+                return secondValue !== 0 ? firstValue / secondValue : 0;
+            default:
+                return secondValue;
+        }
+    };
+
+    const handleEquals = () => {
+        const inputValue = parseFloat(display);
+
+        if (previousValue !== null && operation) {
+            const newValue = calculate(previousValue, inputValue, operation);
+            setDisplay(String(newValue));
+            setPreviousValue(null);
+            setOperation(null);
+            setWaitingForOperand(true);
+        }
+    };
+3. У частині рендерингу калькулятора змінити:
+У блоці створення елементів, замінити створення кнопки "2":
+javascript// Замість цього:
+React.createElement('button', {
+    key: '2',
+    onClick: () => inputNumber(2),
+    style: getButtonStyle('number')
+}, '2'),
+
+// Використовувати це:
+React.createElement('button', {
+    key: '2',
+    onClick: handleButton2Click,
+    style: {
+        ...getButtonStyle('number'),
+        ...(isButton2Animating ? { animationName: 'specialButtonAnimation' } : {})
+    },
+    className: isButton2Animating ? 'calculator-button-2-animated' : ''
+}, '2'),
+4. Також потрібно змінити контейнер калькулятора для додання класу тремтіння:
+javascript// У функції createElement для всього калькулятора додати:
+return React.createElement('div', {
+    className: `integrated-calculator ${isCalculatorShaking ? 'calculator-shake' : ''}`,
+    style: {
+        background: 'rgba(255, 255, 255, 0.98)',
+        borderRadius: '15px',
+        padding: '20px',
+        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2)',
+        backdropFilter: 'blur(10px)',
+        border: '1px solid rgba(255, 255, 255, 0.3)',
+        maxWidth: '280px',
+        width: '100%',
+        fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+    }
+}, [
+Ці зміни зроблять так, що при натисканні на кнопку "2" спочатку відбудеться анімація (кнопка буде обертатися та змінювати кольори, а весь калькулятор буде трястися), і тільки після завершення анімації цифра "2" з'явиться в дисплеї калькулятора.
